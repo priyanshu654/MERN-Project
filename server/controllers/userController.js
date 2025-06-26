@@ -1,3 +1,69 @@
-const clerkWebhooks=async(req,res)=>{
+const webhook = require("svix");
+const User = require("../models/userModals");
+require("dotenv").config();
 
-}
+//api controller function to manage clerk user with databse
+//http://localhost:5000/api/user/webhooks
+
+const clerkWebhooks = async (req, res) => {
+  try {
+    const whook = new webhook(process.env.CLERK_WEBHOOK_SECRET);
+
+    await whook.verify(JSON.stringify(req.body), {
+      "svix-id": req.headers["svix-id"],
+      "svix-timestamp": req.headers["svix-timestamp"],
+      "svix-signature": req.headers["svix-signature"],
+    });
+
+    const { data, type } = req.body;
+
+    switch (type) {
+      case "user.created": {
+        const payload = {
+          clerkId: data.id,
+          email: data.email_addresses[0].email_address,
+          firstName: data.first_name,
+          lastName: data.last_name,
+          photo: data.image_url,
+        };
+
+        await User.create(payload);
+
+        res.json({});
+
+        break;
+      }
+
+      case "user.updated": {
+        const payload = {
+          email: data.email_addresses[0].email_address,
+          firstName: data.first_name,
+          lastName: data.last_name,
+          photo: data.image_url,
+        };
+
+        await User.findOneAndUpdate({clerkId:data.id},payload,{new:true});
+        res.json({})
+
+        break;
+      }
+
+      case "user.delete":{
+        await User.findOneAndDelete({clerkId:data.id})
+
+        res.json({})
+      }
+
+      default:
+        break;
+    }
+  } catch (error) {
+    console.log(error.message);
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+module.exports=clerkWebhooks;
