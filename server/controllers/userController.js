@@ -148,7 +148,6 @@
 
 
 //final
-
 const { Webhook } = require("svix");
 const User = require("../models/userModals");
 require("dotenv").config();
@@ -169,7 +168,6 @@ const clerkWebhooks = async (req, res) => {
     });
 
     const { data, type } = evt;
-
     console.log("📨 Event type:", type);
 
     switch (type) {
@@ -183,30 +181,26 @@ const clerkWebhooks = async (req, res) => {
         };
 
         console.log("📝 Creating user:", payload);
-
         await User.create(payload);
         console.log("✅ User created in DB");
 
-        res.status(200).json({});
-        break;
+        return res.status(200).json({ success: true });
       }
 
       case "user.deleted": {
         await User.findOneAndDelete({ clerkId: data.id });
         console.log("❌ User deleted");
 
-        res.status(200).json({});
-        break;
+        return res.status(200).json({ success: true });
       }
 
       default:
         console.log("⚠️ Unhandled event:", type);
-        res.status(400).json({ message: "Unhandled webhook type" });
-        break;
+        return res.status(400).json({ message: "Unhandled webhook type" });
     }
   } catch (error) {
     console.error("❌ Webhook error:", error.message);
-    res.status(400).json({
+    return res.status(400).json({
       success: false,
       message: error.message,
     });
@@ -214,3 +208,4 @@ const clerkWebhooks = async (req, res) => {
 };
 
 module.exports = clerkWebhooks;
+
