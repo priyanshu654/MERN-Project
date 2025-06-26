@@ -155,7 +155,10 @@ require("dotenv").config();
 
 const clerkWebhooks = async (req, res) => {
   try {
+    console.log("🔔 Clerk webhook received");
+
     const payloadString = req.body.toString("utf8");
+    console.log("📦 Raw Payload:", payloadString);
 
     const wh = new Webhook(process.env.CLERK_WEBHOOK_SECRET);
 
@@ -167,6 +170,8 @@ const clerkWebhooks = async (req, res) => {
 
     const { data, type } = evt;
 
+    console.log("📨 Event type:", type);
+
     switch (type) {
       case "user.created": {
         const payload = {
@@ -177,36 +182,30 @@ const clerkWebhooks = async (req, res) => {
           photo: data.image_url,
         };
 
+        console.log("📝 Creating user:", payload);
+
         await User.create(payload);
-        res.status(200).json({});
-        break;
-      }
+        console.log("✅ User created in DB");
 
-      case "user.updated": {
-        const payload = {
-          email: data.email_addresses[0].email_address,
-          firstName: data.first_name,
-          lastName: data.last_name,
-          photo: data.image_url,
-        };
-
-        await User.findOneAndUpdate({ clerkId: data.id }, payload, { new: true });
         res.status(200).json({});
         break;
       }
 
       case "user.deleted": {
         await User.findOneAndDelete({ clerkId: data.id });
+        console.log("❌ User deleted");
+
         res.status(200).json({});
         break;
       }
 
       default:
+        console.log("⚠️ Unhandled event:", type);
         res.status(400).json({ message: "Unhandled webhook type" });
         break;
     }
   } catch (error) {
-    console.error("Webhook error:", error.message);
+    console.error("❌ Webhook error:", error.message);
     res.status(400).json({
       success: false,
       message: error.message,
@@ -215,4 +214,3 @@ const clerkWebhooks = async (req, res) => {
 };
 
 module.exports = clerkWebhooks;
-
